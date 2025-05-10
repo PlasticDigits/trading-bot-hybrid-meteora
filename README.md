@@ -1,12 +1,12 @@
 # Trading Bot for Meteora DLMM/DAMM
 
-A Solana-based trading bot that interacts with Meteora DLMM (Decentralized Liquidity Market Maker) pools to execute hopefully profitable automated trades based on configurable parameters. **IMPORTANT** Any profits or losses are your responsibility solely. The default settings are likely to lose money so make sure to update them, because they arent set based on your specific situation. Also this code is not meant for big money as its not audited plus you need a secure environment and it doesnt support stuff like secure key management.
+A Solana-based trading bot that interacts with Meteora DLMM (Decentralized Liquidity Market Maker) and DAMM (Decentralized Automated Market Maker) pools to execute hopefully profitable automated trades based on configurable parameters. **IMPORTANT** Any profits or losses are your responsibility solely. The default settings are likely to lose money so make sure to update them, because they arent set based on your specific situation. Also this code is not meant for big money as its not audited plus you need a secure environment and it doesnt support stuff like secure key management.
 
 ## Overview
 
 This bot implements an automated trading strategy that:
 
-- Monitors token/WSOL ratios in a Meteora DLMM pool
+- Monitors token/WSOL ratios in a Meteora DLMM or DAMM pool
 - Executes trades based on configurable parameters and random factors
 - Converges the bot's token/SOL ratio toward the pool's ratio over time
 - Uses randomized noise to prevent exploitation by observers
@@ -90,6 +90,7 @@ Then edit the `.env` file with your specific configuration values. See the comme
 - `PRIVATE_KEY`: Wallet private key in either format:
   - Base58 format (64 chars): `"3Bx...XYZ=="`
   - JSON array format (64 numbers): `"[1,2,3,...,64]"`
+- `POOL_TYPE`: Type of Meteora pool to trade on (DLMM or DAMM)
 - `METEORA_POOL`: token/sol pool to trade on.
 - `MIN_INTERVAL_MS`: Minimum time between trades (default: 30000ms)
 - `MAX_INTERVAL_MS`: Maximum time between trades (default: 120000ms)
