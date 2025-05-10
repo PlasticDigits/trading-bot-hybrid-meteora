@@ -70,7 +70,7 @@ This trading strategy increases profitability in several ways:
 
 ## Prerequisites
 
-- Node.js environment
+- Node.js environment (v20 or higher)
 - Solana wallet with private key
 - Access to a Solana RPC endpoint
 - Sufficient SOL and token balances for trading

@@ -16,5 +16,8 @@
   },
   "scripts": {
     "start": "ts-node main.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
