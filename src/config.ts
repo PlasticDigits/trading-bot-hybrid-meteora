@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { BN } from "bn.js";
+import BN from "bn.js";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import * as bs58 from "bs58";
 import DLMM from "@meteora-ag/dlmm";
@@ -27,6 +27,11 @@ const minTradeFraction = tradeFraction * 0.2; // 20% of max trade fraction as mi
 
 // Buy/Sell ratio parameter
 const buysPerSell = parseFloat(process.env.BUYS_PER_SELL || "2.0"); // ratio of buys to sells, reduces size of buys relative to sells
+
+// Random decision threshold for unpredictable trading
+const randomDecisionThreshold = parseFloat(
+  process.env.RANDOM_DECISION_THRESHOLD || "0.8"
+); // 80% follow ratio-based strategy by default
 
 // Validate required environment variables
 if (!process.env.PRIVATE_KEY) {
@@ -73,6 +78,7 @@ interface Config {
   wallet: Keypair;
   dlmmPool: Promise<DLMM>;
   buysPerSell: number; // renamed from buyToSellRatio to match .env
+  randomDecisionThreshold: number; // added parameter for trading randomness
 }
 
 const config: Config = {
@@ -89,6 +95,7 @@ const config: Config = {
   wallet,
   dlmmPool: dlmmPoolPromise,
   buysPerSell, // renamed from buyToSellRatio to match .env
+  randomDecisionThreshold, // added parameter for trading randomness
 };
 
 export default config;

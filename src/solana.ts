@@ -1,7 +1,7 @@
 // src/bot.ts
 import { PublicKey, sendAndConfirmTransaction } from "@solana/web3.js";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
-import { BN } from "bn.js";
+import BN from "bn.js";
 
 import config from "./config";
 
@@ -24,7 +24,7 @@ async function getTokenBalance(): Promise<BN> {
     config.tokenMint,
     config.wallet.publicKey
   );
-  return new BN(ata.amount); // amount is string/BigIntable
+  return new BN(ata.amount.toString()); // Convert bigint to string for BN
 }
 
 /**

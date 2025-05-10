@@ -5,7 +5,7 @@ import {
   executeSwap,
 } from "./solana";
 import config from "./config";
-import { BN } from "bn.js";
+import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 
 const {
@@ -16,6 +16,7 @@ const {
   tokenMint,
   dlmmPool,
   buysPerSell,
+  randomDecisionThreshold,
 } = config;
 
 // Core trading cycle: compute target, decide trade, execute swap
@@ -29,7 +30,8 @@ async function tradeCycle() {
   try {
     // Get our current ratio
     botSolBal = await getSolBalance();
-    botTokenBal = await getTokenBalance();
+    const tokenBalBN = await getTokenBalance();
+    botTokenBal = tokenBalBN.toNumber(); // Convert BN to number
     if (botSolBal === 0 || botTokenBal === 0) {
       console.log("Insufficient balance for trading.");
       return;
@@ -44,12 +46,13 @@ async function tradeCycle() {
 
     // Add noise to the pool ratio between [-randomFactor, +randomFactor]
     const noise = Math.random() * 2 * randomFactor - randomFactor;
-    targetRatio = botRatio * (1 + noise);
+    // Target a noisy version of the pool ratio for convergence with randomness
+    targetRatio = poolRatio * (1 + noise);
 
     console.log(
-      `Current ratio = ${botRatio.toFixed(6)}, target = ${targetRatio.toFixed(
+      `Bot ratio = ${botRatio.toFixed(6)}, pool ratio = ${poolRatio.toFixed(
         6
-      )}`
+      )}, noisy target = ${targetRatio.toFixed(6)}`
     );
   } catch (err) {
     console.error("Error in tradeCycle ratio calculation:", err);
@@ -62,8 +65,27 @@ async function tradeCycle() {
     const pool = await dlmmPool;
     const tradeFraction =
       Math.random() * (maxTradeFraction - minTradeFraction) + minTradeFraction;
-    if (poolRatio < targetRatio) {
-      // Buy tokens: in=WSOL, out=Token
+
+    // Calculate the probability of buying that will maintain the exact buysPerSell ratio
+    // No matter how often the bot is above or below target ratio
+    let shouldBuyTokens: boolean;
+
+    // With probability randomDecisionThreshold, follow natural action (buy when below, sell when above)
+    // Otherwise, use a skewed random decision that ensures exactly buysPerSell buys for every 1 sell
+    const followNatural = Math.random() < randomDecisionThreshold;
+
+    if (followNatural) {
+      // Follow natural action based on ratio comparison
+      shouldBuyTokens = botRatio < targetRatio;
+    } else {
+      // When randomizing, make buysPerSell/(buysPerSell+1) of random actions be buys
+      // This ensures exactly buysPerSell buys for every sell, regardless of market conditions
+      const randomBuyThreshold = buysPerSell / (buysPerSell + 1);
+      shouldBuyTokens = Math.random() < randomBuyThreshold;
+    }
+
+    if (shouldBuyTokens) {
+      // Buy tokens
       inToken = pool.tokenX.publicKey.equals(wsolMint)
         ? pool.tokenX.publicKey
         : pool.tokenY.publicKey;
@@ -73,9 +95,10 @@ async function tradeCycle() {
       const solToSpend = Math.floor(botSolBal * tradeFraction);
       inAmountBN = new BN(solToSpend);
       // Since is buy, we need to adjust the size by the buy to sell ratio from config
-      inAmountBN = inAmountBN.div(new BN(1 + buysPerSell));
+      inAmountBN = inAmountBN.div(new BN(buysPerSell));
+      console.log(`Buying tokens to approach noisy target ratio`);
     } else {
-      // Sell tokens: in=Token, out=WSOL
+      // Sell tokens
       inToken = pool.tokenX.publicKey.equals(tokenMint)
         ? pool.tokenX.publicKey
         : pool.tokenY.publicKey;
@@ -84,6 +107,7 @@ async function tradeCycle() {
         : pool.tokenX.publicKey;
       const tokenToSell = Math.floor(botTokenBal * tradeFraction);
       inAmountBN = new BN(tokenToSell);
+      console.log(`Selling tokens to approach noisy target ratio`);
     }
   } catch (err) {
     console.error("Error in tradeCycle deciding trade action:", err);
