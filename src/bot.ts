@@ -15,6 +15,8 @@ const {
   wsolMint,
   tokenMint,
   dlmmPool,
+  dammPool,
+  poolType,
   buysPerSell,
   randomDecisionThreshold,
 } = config;
@@ -36,13 +38,46 @@ async function tradeCycle() {
       console.log("Insufficient balance for trading.");
       return;
     }
-    botRatio = botTokenBal / botSolBal;
+    botRatio = (botTokenBal * 10 ** 9) / botSolBal;
+
+    // Local token variables to normalize between DLMM and DAMM
+    let tokenXPubkey: PublicKey;
+    let tokenYPubkey: PublicKey;
+    let tokenXAmount: string | number | bigint;
+    let tokenYAmount: string | number | bigint;
 
     // Get the pool's current ratio token/wsol
-    const pool = await dlmmPool;
-    poolRatio = pool.tokenX.publicKey.equals(wsolMint)
-      ? Number(pool.tokenX.amount) / Number(pool.tokenY.amount)
-      : Number(pool.tokenY.amount) / Number(pool.tokenX.amount);
+    if (poolType === "DLMM") {
+      if (!dlmmPool) {
+        console.error("DLMM pool not initialized");
+        return;
+      }
+      const pool = await dlmmPool;
+      await pool.refetchStates();
+      tokenXPubkey = pool.tokenX.publicKey;
+      tokenYPubkey = pool.tokenY.publicKey;
+      tokenXAmount = pool.tokenX.amount;
+      tokenYAmount = pool.tokenY.amount;
+    } else {
+      // DAMM Pool
+      if (!dammPool) {
+        console.error("DAMM pool not initialized");
+        return;
+      }
+      const pool = await dammPool;
+      await pool.updateState();
+
+      // Check both tokenAMint/tokenBMint and poolState for the amounts
+      tokenXPubkey = pool.tokenAMint.address;
+      tokenYPubkey = pool.tokenBMint.address;
+      tokenXAmount = pool.poolInfo.tokenAAmount.toNumber();
+      tokenYAmount = pool.poolInfo.tokenBAmount.toNumber();
+    }
+
+    // Calculate pool ratio with our normalized tokens
+    poolRatio = tokenXPubkey.equals(wsolMint)
+      ? (Number(tokenYAmount) * 10 ** 9) / Number(tokenXAmount)
+      : (Number(tokenXAmount) * 10 ** 9) / Number(tokenYAmount);
 
     // Add noise to the pool ratio between [-randomFactor, +randomFactor]
     const noise = Math.random() * 2 * randomFactor - randomFactor;
@@ -54,6 +89,9 @@ async function tradeCycle() {
         6
       )}, noisy target = ${targetRatio.toFixed(6)}`
     );
+    console.log(
+      `Bot ratio / pool ratio = ${(botRatio / poolRatio).toFixed(6)}`
+    );
   } catch (err) {
     console.error("Error in tradeCycle ratio calculation:", err);
     return;
@@ -62,7 +100,31 @@ async function tradeCycle() {
   // Decide trade action
   let inToken: PublicKey, outToken: PublicKey, inAmountBN: BN;
   try {
-    const pool = await dlmmPool;
+    // Local token variables to normalize between DLMM and DAMM
+    let tokenXPubkey: PublicKey;
+    let tokenYPubkey: PublicKey;
+
+    if (poolType === "DLMM") {
+      if (!dlmmPool) {
+        console.error("DLMM pool not initialized");
+        return;
+      }
+      const pool = await dlmmPool;
+      tokenXPubkey = pool.tokenX.publicKey;
+      tokenYPubkey = pool.tokenY.publicKey;
+    } else {
+      // DAMM Pool
+      if (!dammPool) {
+        console.error("DAMM pool not initialized");
+        return;
+      }
+      const pool = await dammPool;
+
+      // Based on the AmmImpl type definition, we need to use tokenAMint and tokenBMint
+      tokenXPubkey = pool.tokenAMint.address;
+      tokenYPubkey = pool.tokenBMint.address;
+    }
+
     const tradeFraction =
       Math.random() * (maxTradeFraction - minTradeFraction) + minTradeFraction;
 
@@ -86,12 +148,8 @@ async function tradeCycle() {
 
     if (shouldBuyTokens) {
       // Buy tokens
-      inToken = pool.tokenX.publicKey.equals(wsolMint)
-        ? pool.tokenX.publicKey
-        : pool.tokenY.publicKey;
-      outToken = inToken.equals(pool.tokenX.publicKey)
-        ? pool.tokenY.publicKey
-        : pool.tokenX.publicKey;
+      inToken = tokenXPubkey.equals(wsolMint) ? tokenXPubkey : tokenYPubkey;
+      outToken = inToken.equals(tokenXPubkey) ? tokenYPubkey : tokenXPubkey;
       const solToSpend = Math.floor(botSolBal * tradeFraction);
       inAmountBN = new BN(solToSpend);
       // Since is buy, we need to adjust the size by the buy to sell ratio from config
@@ -99,12 +157,8 @@ async function tradeCycle() {
       console.log(`Buying tokens to approach noisy target ratio`);
     } else {
       // Sell tokens
-      inToken = pool.tokenX.publicKey.equals(tokenMint)
-        ? pool.tokenX.publicKey
-        : pool.tokenY.publicKey;
-      outToken = inToken.equals(pool.tokenX.publicKey)
-        ? pool.tokenY.publicKey
-        : pool.tokenX.publicKey;
+      inToken = tokenXPubkey.equals(tokenMint) ? tokenXPubkey : tokenYPubkey;
+      outToken = inToken.equals(tokenXPubkey) ? tokenYPubkey : tokenXPubkey;
       const tokenToSell = Math.floor(botTokenBal * tradeFraction);
       inAmountBN = new BN(tokenToSell);
       console.log(`Selling tokens to approach noisy target ratio`);

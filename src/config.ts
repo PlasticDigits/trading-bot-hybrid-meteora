@@ -3,6 +3,7 @@ import BN from "bn.js";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import * as bs58 from "bs58";
 import DLMM from "@meteora-ag/dlmm";
+import { AmmImpl } from "@mercurial-finance/dynamic-amm-sdk";
 
 dotenv.config();
 
@@ -11,6 +12,11 @@ const rpcUrl = process.env.SOLANA_RPC_URL!;
 const poolAddr = new PublicKey(process.env.METEORA_POOL!);
 const tokenMint = new PublicKey(process.env.TOKEN_MINT!);
 const wsolMint = new PublicKey(process.env.WSOL_MINT!);
+const poolType = (process.env.POOL_TYPE || "DLMM").toUpperCase();
+
+if (poolType !== "DLMM" && poolType !== "DAMM") {
+  throw new Error("POOL_TYPE must be either DLMM or DAMM");
+}
 
 // Trading interval parameters
 const minInterval = parseInt(process.env.MIN_INTERVAL_MS!) || 30000; // minimum time between trades (ms)
@@ -60,9 +66,17 @@ try {
   }
 }
 const wallet = Keypair.fromSecretKey(secretKey);
+console.log("Wallet Successfully Loaded:", wallet.publicKey.toBase58());
 
-// Initialize Meteora DLMM pool instance
-const dlmmPoolPromise = DLMM.create(connection, poolAddr);
+// Initialize pool based on pool type
+let dlmmPool: Promise<DLMM> | null = null;
+let dammPool: Promise<AmmImpl> | null = null;
+
+if (poolType === "DLMM") {
+  dlmmPool = DLMM.create(connection, poolAddr);
+} else {
+  dammPool = AmmImpl.create(connection, poolAddr);
+}
 
 interface Config {
   connection: Connection;
@@ -76,9 +90,11 @@ interface Config {
   maxTradeFraction: number;
   minTradeFraction: number;
   wallet: Keypair;
-  dlmmPool: Promise<DLMM>;
-  buysPerSell: number; // renamed from buyToSellRatio to match .env
-  randomDecisionThreshold: number; // added parameter for trading randomness
+  poolType: string;
+  dlmmPool: Promise<DLMM> | null;
+  dammPool: Promise<AmmImpl> | null;
+  buysPerSell: number;
+  randomDecisionThreshold: number;
 }
 
 const config: Config = {
@@ -93,9 +109,11 @@ const config: Config = {
   maxTradeFraction,
   minTradeFraction,
   wallet,
-  dlmmPool: dlmmPoolPromise,
-  buysPerSell, // renamed from buyToSellRatio to match .env
-  randomDecisionThreshold, // added parameter for trading randomness
+  poolType,
+  dlmmPool,
+  dammPool,
+  buysPerSell,
+  randomDecisionThreshold,
 };
 
 export default config;
