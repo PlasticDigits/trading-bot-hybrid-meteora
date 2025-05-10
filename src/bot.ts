@@ -154,14 +154,22 @@ async function tradeCycle() {
       inAmountBN = new BN(solToSpend);
       // Since is buy, we need to adjust the size by the buy to sell ratio from config
       inAmountBN = inAmountBN.div(new BN(buysPerSell));
-      console.log(`Buying tokens to approach noisy target ratio`);
+      if (followNatural) {
+        console.log(`Buying tokens to approach noisy target ratio`);
+      } else {
+        console.log(`Buying tokens to follow random action`);
+      }
     } else {
       // Sell tokens
       inToken = tokenXPubkey.equals(tokenMint) ? tokenXPubkey : tokenYPubkey;
       outToken = inToken.equals(tokenXPubkey) ? tokenYPubkey : tokenXPubkey;
       const tokenToSell = Math.floor(botTokenBal * tradeFraction);
       inAmountBN = new BN(tokenToSell);
-      console.log(`Selling tokens to approach noisy target ratio`);
+      if (followNatural) {
+        console.log(`Selling tokens to approach noisy target ratio`);
+      } else {
+        console.log(`Selling tokens to follow random action`);
+      }
     }
   } catch (err) {
     console.error("Error in tradeCycle deciding trade action:", err);
