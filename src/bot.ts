@@ -7,6 +7,7 @@ import {
 import config from "./config";
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
+import { TransactionExpiredBlockheightExceededError } from "@solana/web3.js";
 
 const {
   randomFactor,
@@ -181,7 +182,12 @@ async function tradeCycle() {
     const swapQuote = await getSwapMinOut(inAmountBN, inToken);
     await executeSwap(inAmountBN, inToken, swapQuote);
   } catch (err) {
-    console.error("Swap failed:", err);
+    if (err instanceof TransactionExpiredBlockheightExceededError) {
+      // This doesnt mean anything, just log and ignore
+      console.log("Transaction expired but still valid.");
+    } else {
+      console.error("Swap failed:", err);
+    }
   }
 }
 
