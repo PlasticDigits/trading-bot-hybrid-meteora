@@ -183,8 +183,11 @@ async function tradeCycle() {
     await executeSwap(inAmountBN, inToken, swapQuote);
   } catch (err) {
     if (err instanceof TransactionExpiredBlockheightExceededError) {
-      // This doesnt mean anything, just log and ignore
-      console.log("Transaction expired but still valid.");
+      // Due to using legacy libraries. This doesnt mean anything, just log and ignore
+      console.log(
+        "Transaction expired but still succeeded. Link: https://solscan.io/tx/" +
+          err.signature
+      );
     } else {
       console.error("Swap failed:", err);
     }
