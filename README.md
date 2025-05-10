@@ -1,6 +1,6 @@
 # Trading Bot for Meteora DLMM/DAMM
 
-A Solana-based trading bot that interacts with Meteora DLMM (Decentralized Liquidity Market Maker) and DAMM (Decentralized Automated Market Maker) pools to execute hopefully profitable automated trades based on configurable parameters. **IMPORTANT** Any profits or losses are your responsibility solely. The default settings are likely to lose money so make sure to update them, because they arent set based on your specific situation. Also this code is not meant for big money as its not audited plus you need a secure environment and it doesnt support stuff like secure key management.
+A Solana-based trading bot that interacts with Meteora DLMM (Dynamic Liquidity Market Maker) and DAMM (Dynamic Automated Market Maker) pools to execute hopefully profitable automated trades based on configurable parameters. **IMPORTANT** Any profits or losses are your responsibility solely. The default settings are likely to lose money so make sure to update them, because they arent set based on your specific situation. Also this code is not meant for big money as its not audited plus you need a secure environment and it doesnt support stuff like secure key management.
 
 ## Overview
 
