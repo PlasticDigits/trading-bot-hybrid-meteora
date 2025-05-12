@@ -1,17 +1,27 @@
-#Node.js base image
-FROM node:24.0.1-alpine
+# Use a Node.js base image
+FROM node:24-slim
 
-# Set working dir
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+  python3 \
+  make \
+  g++ \
+  curl \
+  git \
+  && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
 WORKDIR /app
 
-# Copy only package files
+# Copy only package files first to leverage Docker cache
 COPY package.json yarn.lock ./
 
-# Install deps
+# Install dependencies
 RUN yarn install
 
-# Copy the rest of the files
+# Copy the rest of the project files
 COPY . .
+RUN yarn rebuild || true
 
-# Run
+# Default command
 CMD ["yarn", "start"]
