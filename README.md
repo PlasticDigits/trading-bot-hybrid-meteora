@@ -115,12 +115,14 @@ yarn install
 ```bash
 yarn start
 ```
-## Running the container
-* Modify your .env file as above
-* Make sure you have docker-compose installed
-* docker-compose up -d --build
-* subsequent restarts and runs can omit the --build option
-  
+
+## Running as Docker container (optional)
+
+- Modify your .env file as above
+- Make sure you have docker-compose installed
+- docker-compose up -d --build
+- subsequent restarts and runs can omit the --build option
+
 ## Core Components
 
 ### Main Loop (`main.ts`)
