@@ -27,9 +27,19 @@ const randomFactor = parseFloat(process.env.RANDOM_FACTOR!) || 0.05; // fraction
 const slippageBps = new BN(parseInt(process.env.SLIPPAGE_BPS!) || 100); // slippage tolerance in basis points (e.g. 100 = 1%)
 
 // Trade size parameters
-const tradeFraction = parseFloat(process.env.TRADE_FRACTION || "0.05"); // maximum trade fraction (of holdings) per move
-const maxTradeFraction = tradeFraction;
-const minTradeFraction = tradeFraction * 0.2; // 20% of max trade fraction as minimum
+let maxTradeFraction: number;
+let minTradeFraction: number;
+
+// Check if legacy TRADE_FRACTION is set
+if (process.env.TRADE_FRACTION) {
+  const tradeFraction = parseFloat(process.env.TRADE_FRACTION || "0.05");
+  maxTradeFraction = tradeFraction;
+  minTradeFraction = tradeFraction * 0.2; // 20% of trade fraction as minimum
+} else {
+  // Use new MIN_TRADE_FRACTION and MAX_TRADE_FRACTION env vars
+  maxTradeFraction = parseFloat(process.env.MAX_TRADE_FRACTION || "0.05");
+  minTradeFraction = parseFloat(process.env.MIN_TRADE_FRACTION || "0.01");
+}
 
 // Buy/Sell ratio parameter
 const buysPerSell = parseFloat(process.env.BUYS_PER_SELL || "2.0"); // ratio of buys to sells, reduces size of buys relative to sells
